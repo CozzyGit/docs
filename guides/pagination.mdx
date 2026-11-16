@@ -1,0 +1,57 @@
+---
+title: "Pagination and rate limits"
+sidebarTitle: "Pagination"
+icon: "filter"
+description: "Retrieve large result sets and safely retry failed requests."
+---
+
+## Cursor pagination
+
+List endpoints expose a `limit` and an opaque `cursor`. Keep requesting pages until `pagination.has_more` is `false`.
+
+```json
+{
+  "data": [{ "id": "cus_7a2b9c", "name": "Acme Robotics" }],
+  "pagination": { "has_more": false, "next_cursor": null }
+}
+```
+
+```python
+import requests
+
+base = 'http://localhost:8787/v1'
+headers = {'Authorization': 'Bearer ns_demo_key'}
+cursor = None
+
+while True:
+    params = {'limit': 20}
+    if cursor:
+        params['cursor'] = cursor
+    r = requests.get(f'{base}/customers', headers=headers, params=params, timeout=10)
+    r.raise_for_status()
+    payload = r.json()
+    for customer in payload['data']:
+        print(customer['id'], customer['name'])
+    if not payload['pagination']['has_more']:
+        break
+    cursor = payload['pagination']['next_cursor']
+```
+
+`limit` accepts values from 1 to 100 and defaults to 20. These endpoints are cursor-paginated:
+
+- [List customers](/api-reference/customers/list-customers)
+- [List events](/api-reference/events/list-events)
+
+## Retry strategy
+
+Production APIs often return `429 Too Many Requests` when callers exceed throughput limits. When you encounter a `429`, respect `Retry-After` when supplied. Otherwise, back off exponentially with a little randomness.
+
+- Retry transient `429` and `5xx` responses.
+- Do not automatically retry validation (`422`) or authentication (`401`) failures.
+- Use `Idempotency-Key` when retrying a POST so a network timeout does not create duplicates.
+
+`Idempotency-Key` is accepted by [Create a customer](/api-reference/customers/create-a-customer), [Track an event](/api-reference/events/track-an-event), and [Create a webhook destination](/api-reference/webhooks/create-a-webhook-destination).
+
+<Note>
+  The included local mock documents a 429 response shape but intentionally does not enforce a rate limit.
+</Note>

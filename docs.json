@@ -33,12 +33,63 @@
               "index",
               "quickstart"
             ]
+          },
+          {
+            "group": "Build with Northstar",
+            "pages": [
+              "guides/authentication",
+              "guides/customer-onboarding",
+              "guides/event-tracking",
+              "guides/usage-analytics",
+              "guides/pagination",
+              "guides/webhooks",
+              "guides/troubleshooting"
+            ]
+          },
+          {
+            "group": "Updates",
+            "pages": [
+              "changelog"
+            ]
           }
         ]
       },
       {
         "tab": "API Reference",
-        "openapi": "openapi.yaml"
+        "openapi": "openapi.yaml",
+        "groups": [
+          {
+            "group": "Customers",
+            "pages": [
+              "GET /customers",
+              "POST /customers",
+              "GET /customers/{customer_id}",
+              "PATCH /customers/{customer_id}"
+            ]
+          },
+          {
+            "group": "Events",
+            "pages": [
+              "GET /events",
+              "POST /events"
+            ]
+          },
+          {
+            "group": "Analytics",
+            "pages": [
+              "GET /usage/summary"
+            ]
+          },
+          {
+            "group": "Webhooks",
+            "pages": [
+              "GET /webhooks",
+              "POST /webhooks",
+              "GET /webhooks/{webhook_id}",
+              "DELETE /webhooks/{webhook_id}"
+            ]
+          }
+        ]
       }
     ]
   },

@@ -1,0 +1,78 @@
+---
+title: "Usage analytics"
+icon: "chart-line"
+description: "Summarize a customer's events and active days over a date range."
+keywords:
+  - "usage"
+  - "summary"
+  - "analytics"
+  - "active days"
+  - "adoption"
+---
+
+The usage summary turns a customer's [tracked events](/guides/event-tracking) into adoption metrics for a date range: total events, active days, and the most frequent event names.
+
+## Get a usage summary
+
+Call `GET /usage/summary` with a customer ID and a date range. All three query parameters are required.
+
+```bash
+curl 'http://localhost:8787/v1/usage/summary?customer_id=cus_7a2b9c&from=2026-11-01&to=2026-11-30' \
+  -H "Authorization: Bearer ns_demo_key"
+```
+
+| Parameter | Description |
+| --- | --- |
+| `customer_id` | Customer to summarize. |
+| `from` | Inclusive start date, `YYYY-MM-DD`. |
+| `to` | Inclusive end date, `YYYY-MM-DD`. Must be on or after `from`. |
+
+## Read the response
+
+```json
+{
+  "customer_id": "cus_7a2b9c",
+  "period_start": "2026-11-01",
+  "period_end": "2026-11-30",
+  "total_events": 1532,
+  "active_days": 14,
+  "top_events": [
+    { "name": "feature.used", "count": 1210 }
+  ]
+}
+```
+
+| Field | Description |
+| --- | --- |
+| `period_start`, `period_end` | The date range you requested. |
+| `total_events` | Number of events whose `occurred_at` falls in the range. |
+| `active_days` | Number of distinct days in the range with at least one event. |
+| `top_events` | Event names with their counts, most frequent first. |
+
+Events are assigned to a day by their `occurred_at` timestamp, not by when Northstar received them. Backfilled events with an accurate `occurred_at` count toward the day the activity happened.
+
+<Note>
+  The local mock returns up to five entries in `top_events` and groups days in UTC.
+</Note>
+
+## Use summaries for adoption reviews
+
+- Compare `active_days` across customers on the same plan to spot low engagement.
+- Check `top_events` to confirm customers use the features they bought.
+- Request consecutive periods, such as one month at a time, to track a trend.
+
+The [Customer onboarding recipe](/guides/customer-onboarding) shows a usage summary as the last step of an onboarding flow.
+
+## Errors
+
+| Status | Cause |
+| --- | --- |
+| `400` | `customer_id`, `from`, or `to` is missing. |
+| `404` | The customer does not exist. |
+| `422` | A date is not a valid `YYYY-MM-DD` string, or `from` is after `to`. |
+
+## Related API reference
+
+- [Get usage summary](/api-reference/analytics/get-usage-summary)
+- [Track an event](/api-reference/events/track-an-event)
+- [Retrieve a customer](/api-reference/customers/retrieve-a-customer)

@@ -1,0 +1,64 @@
+---
+title: "Customer onboarding recipe"
+sidebarTitle: "Customer onboarding"
+icon: "users"
+description: "Create a customer, capture adoption events, and inspect usage."
+---
+
+This example models a common lifecycle for an enterprise SaaS integration. First, create a customer record. Then, track meaningful product actions and query aggregate usage.
+
+<Steps>
+  <Step title="Create the customer">
+    ```bash
+    curl -X POST http://localhost:8787/v1/customers \
+      -H "Authorization: Bearer ns_demo_key" \
+      -H "Content-Type: application/json" \
+      -d '{"name":"Northwind Logistics","email":"dev@northwind.example","plan":"enterprise","external_id":"sf_account_90210"}'
+    ```
+
+    Copy the returned `id`. See [Create a customer](/api-reference/customers/create-a-customer).
+  </Step>
+  <Step title="Record product adoption">
+    Call [`POST /events`](/api-reference/events/track-an-event) with the returned customer ID:
+
+    ```json
+    {
+      "customer_id": "cus_7a2b9c",
+      "name": "feature.used",
+      "properties": {
+        "feature": "analytics_dashboard",
+        "actor_role": "admin"
+      }
+    }
+    ```
+
+    Use consistent event names and documented property keys, even as your product evolves. The [Event tracking](/guides/event-tracking) guide covers naming and retries in more detail.
+  </Step>
+  <Step title="Review usage signals">
+    ```bash
+    curl 'http://localhost:8787/v1/usage/summary?customer_id=cus_7a2b9c&from=2026-11-01&to=2026-11-30' \
+      -H "Authorization: Bearer ns_demo_key"
+    ```
+
+    In a real customer-success workflow, you might compare `active_days` and `total_events` against expected adoption milestones. See [Usage analytics](/guides/usage-analytics) and [Get usage summary](/api-reference/analytics/get-usage-summary).
+  </Step>
+</Steps>
+
+## Recommended tracking plan
+
+| Event | Trigger | Why it matters |
+| --- | --- | --- |
+| `user.invited` | An admin invites a teammate | Measures expansion across users |
+| `integration.connected` | A data integration succeeds | Captures time-to-value milestones |
+| `feature.used` | A user performs a core action | Indicates feature adoption |
+
+<Note>
+  This tracking plan is illustrative. The mock stores any non-empty event name and does not itself score health, retention, or churn.
+</Note>
+
+## Related API reference
+
+- [Create a customer](/api-reference/customers/create-a-customer)
+- [Update a customer](/api-reference/customers/update-a-customer)
+- [Track an event](/api-reference/events/track-an-event)
+- [Get usage summary](/api-reference/analytics/get-usage-summary)

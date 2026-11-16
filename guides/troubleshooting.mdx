@@ -1,0 +1,51 @@
+---
+title: "Troubleshooting"
+icon: "life-ring"
+description: "Diagnose common API integration errors."
+---
+
+## Common HTTP errors
+
+| Status | Meaning | What to check |
+| --- | --- | --- |
+| `400` | Malformed request | JSON syntax, missing query parameters |
+| `401` | Unauthorized | Bearer header and demo token |
+| `404` | Not found | Customer ID or webhook ID |
+| `409` | Conflict | Repeated idempotency key with a changed payload |
+| `422` | Invalid input | Required fields, email, event name, or plan value |
+| `429` | Rate limited | Wait and retry (documented only in the local mock) |
+
+## Example error response
+
+```json
+{
+  "error": {
+    "code": "not_found",
+    "message": "Customer was not found.",
+    "request_id": "req_84ac2d"
+  }
+}
+```
+
+<AccordionGroup>
+  <Accordion title="My request returns 401">
+    Ensure the `Authorization` header is exactly `Bearer ns_demo_key` for the local mock. Keep real credentials secret in a production environment. See [Authentication](/guides/authentication).
+  </Accordion>
+
+  <Accordion title="My browser fails to reach api.northstar.example">
+    That URL is a reserved example domain and is intentionally not operational. Start the included local mock and target `http://localhost:8787/v1` instead. See the [Quickstart](/quickstart).
+  </Accordion>
+
+  <Accordion title="The Mintlify playground cannot call localhost for someone else">
+    Localhost refers to each viewer's own computer. To share an interactive public demo, deploy a mock API on a reachable HTTPS host, update the OpenAPI server URL, and configure appropriate CORS permissions.
+  </Accordion>
+
+  <Accordion title="I changed a file but it is not in the sidebar">
+    Check that the file is included under `navigation` in `docs.json`. OpenAPI operations are generated from the `openapi.yaml` reference in the API Reference tab.
+  </Accordion>
+</AccordionGroup>
+
+## Related
+
+- [Pagination and rate limits](/guides/pagination) covers retry rules for `429` and when not to retry `401` and `422`.
+- Each endpoint in the [API reference](/api-reference/customers/list-customers) lists the error responses it can return.

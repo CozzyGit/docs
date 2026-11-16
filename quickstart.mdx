@@ -1,47 +1,134 @@
 ---
 title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+description: "Start the local mock API, authenticate, and make your first Northstar requests."
+icon: "rocket"
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+This quickstart runs the optional Northstar mock API on your machine, lists the seeded customer, and tracks your first event.
 
 ## Prerequisites
 
-Before you begin, you must have:
+- Python 3 to run the mock API. The mock uses only the standard library.
+- `curl`, or the `requests` package (`pip install requests`) for the Python example.
+- `mock_api.py` from the Northstar starter kit.
 
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+## Make your first request
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
-
+  <Step title="Start the mock API">
     ```bash
-    npm install your-package
+    python3 mock_api.py
     ```
+
+    The mock listens on `http://localhost:8787/v1` and accepts the demo token `ns_demo_key`. Data is stored in memory and resets when the server restarts.
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
+  <Step title="List customers">
+    Send the demo token in the `Authorization` header:
 
     ```bash
-    your-cli init
+    curl http://localhost:8787/v1/customers \
+      -H "Authorization: Bearer ns_demo_key"
     ```
+
+    The mock starts with one customer:
+
+    ```json
+    {
+      "data": [
+        {
+          "id": "cus_7a2b9c",
+          "name": "Acme Robotics",
+          "email": "admin@acme.example",
+          "plan": "growth",
+          "status": "active",
+          "external_id": "crm_acme_001",
+          "created_at": "2026-11-16T16:00:00Z"
+        }
+      ],
+      "pagination": { "has_more": false, "next_cursor": null }
+    }
+    ```
+
+    See [List customers](/api-reference/customers/list-customers) for every parameter and response field.
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
+  <Step title="Track an event">
+    Record a product event for that customer:
 
     ```bash
-    your-cli start
+    curl -X POST http://localhost:8787/v1/events \
+      -H "Authorization: Bearer ns_demo_key" \
+      -H "Content-Type: application/json" \
+      -d '{"customer_id":"cus_7a2b9c","name":"feature.used","properties":{"feature":"dashboard"}}'
     ```
+
+    A `201` response returns the stored event with an `evt_` ID. See [Track an event](/api-reference/events/track-an-event).
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## Use the Python client
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>
+The starter kit's `python_client.py` creates a customer and tracks an event for it. Run it while the mock is running:
+
+```python python_client.py
+import os
+import requests
+
+BASE_URL = os.getenv("NORTHSTAR_BASE_URL", "http://localhost:8787/v1")
+TOKEN = os.getenv("NORTHSTAR_API_KEY", "ns_demo_key")
+SESSION = requests.Session()
+SESSION.headers.update({"Authorization": f"Bearer {TOKEN}"})
+
+
+def create_customer(name, email):
+    response = SESSION.post(
+        f"{BASE_URL}/customers",
+        json={"name": name, "email": email, "plan": "growth"},
+        headers={"Idempotency-Key": "example-python-client-001"},
+        timeout=10,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def track_event(customer_id):
+    response = SESSION.post(
+        f"{BASE_URL}/events",
+        json={
+            "customer_id": customer_id,
+            "name": "feature.used",
+            "properties": {"feature": "dashboard"},
+        },
+        timeout=10,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+if __name__ == "__main__":
+    customer = create_customer("Acme Robotics", "admin@acme.example")
+    print("Created customer:", customer["id"])
+    event = track_event(customer["id"])
+    print("Tracked event:", event["id"])
+```
+
+Set `NORTHSTAR_BASE_URL` and `NORTHSTAR_API_KEY` to point the client at a different server or token.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Authentication" icon="key" href="/guides/authentication">
+    Learn how bearer tokens work and how to keep keys secret.
+  </Card>
+
+  <Card title="Event tracking" icon="bolt" href="/guides/event-tracking">
+    Design event names and properties that stay useful over time.
+  </Card>
+
+  <Card title="Usage analytics" icon="chart-line" href="/guides/usage-analytics">
+    Summarize a customer's activity over a date range.
+  </Card>
+
+  <Card title="API reference" icon="code" href="/api-reference/customers/list-customers">
+    Explore all endpoints in the interactive playground.
+  </Card>
+</Columns>

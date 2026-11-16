@@ -1,0 +1,57 @@
+---
+title: "Webhooks"
+icon: "webhook"
+description: "Register event listeners and understand delivery-security patterns."
+---
+
+Webhooks allow a service to notify another system when something important happens, rather than requiring constant polling.
+
+## Subscribe to events
+
+```bash
+curl -X POST http://localhost:8787/v1/webhooks \
+  -H "Authorization: Bearer ns_demo_key" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://hooks.acme.example/northstar","events":["customer.created","event.received"]}'
+```
+
+A successfully registered destination receives an ID like `whk_24d9fa`.
+
+## Example webhook payload
+
+```json
+{
+  "id": "msg_100492",
+  "type": "customer.created",
+  "created_at": "2026-11-16T16:30:00Z",
+  "data": {
+    "id": "cus_7a2b9c",
+    "name": "Acme Robotics"
+  }
+}
+```
+
+## Production delivery considerations
+
+A complete production implementation should document delivery retries, request timeouts, signing secrets, replay protection, and event ordering. The payload above is an example of such a contract; **the local mock does not send webhook deliveries or sign requests.**
+
+<AccordionGroup>
+  <Accordion title="Should my endpoint return a 2xx response?">
+    Generally, yes. In a real webhook service, a successful 2xx response acknowledges delivery. Publish your product's precise retry behavior.
+  </Accordion>
+
+  <Accordion title="Can webhook deliveries arrive more than once?">
+    Design consumers to be idempotent. Store each unique event ID to avoid processing duplicate deliveries.
+  </Accordion>
+
+  <Accordion title="How should I verify signatures?">
+    Use an HMAC signature with a shared secret and verify it using a constant-time comparison. This demo intentionally does not define a real signing secret or mechanism.
+  </Accordion>
+</AccordionGroup>
+
+## Related API reference
+
+- [List webhook destinations](/api-reference/webhooks/list-webhook-destinations)
+- [Create a webhook destination](/api-reference/webhooks/create-a-webhook-destination)
+- [Retrieve a webhook destination](/api-reference/webhooks/retrieve-a-webhook-destination)
+- [Delete a webhook destination](/api-reference/webhooks/delete-a-webhook-destination)
