@@ -1,0 +1,865 @@
+openapi: 3.0.3
+info:
+  title: Northstar API
+  version: 1.0.0
+  description: A **fictional SaaS API** for customer accounts, product events, usage analytics, and webhook subscriptions.
+    Built as a Mintlify documentation demo. There is no live public service at the example domain.
+  contact:
+    name: Northstar Developer Experience
+    email: developers@northstar.example
+servers:
+- url: https://api.northstar.example/v1
+  description: Illustrative production URL (does not resolve)
+- url: http://localhost:8787/v1
+  description: Optional local mock API included in the starter kit
+tags:
+- name: Customers
+  description: Create, retrieve, list, and update customer accounts.
+- name: Events
+  description: Ingest customer activity and inspect recently tracked events.
+- name: Analytics
+  description: Get high-level usage metrics for a customer.
+- name: Webhooks
+  description: Configure destinations for event notifications (mock stores configuration only).
+security:
+- bearerAuth: []
+paths:
+  /customers:
+    get:
+      tags:
+      - Customers
+      operationId: listCustomers
+      summary: List customers
+      description: Returns a cursor-paginated list of customers in the workspace.
+      parameters:
+      - $ref: '#/components/parameters/limit'
+      - $ref: '#/components/parameters/cursor'
+      responses:
+        '200':
+          description: Customers returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerList'
+              example:
+                data:
+                - &id001
+                  id: cus_7a2b9c
+                  name: Acme Robotics
+                  email: admin@acme.example
+                  plan: growth
+                  status: active
+                  external_id: crm_acme_001
+                  created_at: '2026-11-16T16:00:00Z'
+                pagination:
+                  has_more: false
+                  next_cursor: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Customers
+      operationId: createCustomer
+      summary: Create a customer
+      description: Create a customer record to link tracked activity and usage. Use an idempotency key for safe
+        retries.
+      parameters:
+      - $ref: '#/components/parameters/idempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomer'
+            example:
+              name: Acme Robotics
+              email: admin@acme.example
+              plan: growth
+              external_id: crm_acme_001
+      responses:
+        '201':
+          description: Customer created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+              example: *id001
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /customers/{customer_id}:
+    get:
+      tags:
+      - Customers
+      operationId: getCustomer
+      summary: Retrieve a customer
+      description: Get one customer by its Northstar identifier.
+      parameters:
+      - $ref: '#/components/parameters/customerId'
+      responses:
+        '200':
+          description: Customer found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+              example: *id001
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    patch:
+      tags:
+      - Customers
+      operationId: updateCustomer
+      summary: Update a customer
+      description: Change the name, plan, status, or external reference for an existing customer.
+      parameters:
+      - $ref: '#/components/parameters/customerId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomer'
+            example:
+              plan: enterprise
+              status: active
+      responses:
+        '200':
+          description: Customer updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+              example:
+                id: cus_7a2b9c
+                name: Acme Robotics
+                email: admin@acme.example
+                plan: enterprise
+                status: active
+                external_id: crm_acme_001
+                created_at: '2026-11-16T16:00:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /events:
+    get:
+      tags:
+      - Events
+      operationId: listEvents
+      summary: List events
+      description: Retrieve recent events, optionally filtered to one customer. Results are newest first.
+      parameters:
+      - name: customer_id
+        in: query
+        required: false
+        description: Filter events to a customer.
+        schema:
+          type: string
+        example: cus_7a2b9c
+      - $ref: '#/components/parameters/limit'
+      - $ref: '#/components/parameters/cursor'
+      responses:
+        '200':
+          description: Events returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventList'
+              example:
+                data:
+                - &id002
+                  id: evt_89fa2d
+                  customer_id: cus_7a2b9c
+                  name: feature.used
+                  properties:
+                    feature: dashboard
+                    source: web
+                  occurred_at: '2026-11-16T16:20:00Z'
+                  received_at: '2026-11-16T16:20:01Z'
+                pagination:
+                  has_more: false
+                  next_cursor: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Events
+      operationId: createEvent
+      summary: Track an event
+      description: Record a product event for a customer. An event name such as `feature.used` should be stable
+        over time.
+      parameters:
+      - $ref: '#/components/parameters/idempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEvent'
+            example:
+              customer_id: cus_7a2b9c
+              name: feature.used
+              properties:
+                feature: dashboard
+                source: web
+              occurred_at: '2026-11-16T16:20:00Z'
+      responses:
+        '201':
+          description: Event accepted and stored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+              example: *id002
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /usage/summary:
+    get:
+      tags:
+      - Analytics
+      operationId: getUsageSummary
+      summary: Get usage summary
+      description: Summarizes events and active days for a customer over a given date range.
+      parameters:
+      - name: customer_id
+        in: query
+        required: true
+        description: Customer to summarize.
+        schema:
+          type: string
+        example: cus_7a2b9c
+      - name: from
+        in: query
+        required: true
+        description: Inclusive start date, YYYY-MM-DD.
+        schema:
+          type: string
+          format: date
+        example: '2026-11-01'
+      - name: to
+        in: query
+        required: true
+        description: Inclusive end date, YYYY-MM-DD.
+        schema:
+          type: string
+          format: date
+        example: '2026-11-30'
+      responses:
+        '200':
+          description: Usage summary generated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageSummary'
+              example:
+                customer_id: cus_7a2b9c
+                period_start: '2026-11-01'
+                period_end: '2026-11-30'
+                total_events: 1532
+                active_days: 14
+                top_events:
+                - name: feature.used
+                  count: 1210
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /webhooks:
+    get:
+      tags:
+      - Webhooks
+      operationId: listWebhooks
+      summary: List webhook destinations
+      description: Show the configured webhook destinations for this workspace.
+      responses:
+        '200':
+          description: Destinations returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookList'
+              example:
+                data:
+                - &id003
+                  id: whk_24d9fa
+                  url: https://hooks.acme.example/northstar
+                  events:
+                  - customer.created
+                  - event.received
+                  enabled: true
+                  created_at: '2026-11-16T16:30:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Webhooks
+      operationId: createWebhook
+      summary: Create a webhook destination
+      description: Register an HTTPS endpoint and select which events it should receive. The included local mock
+        stores subscriptions but does not send outbound HTTP.
+      parameters:
+      - $ref: '#/components/parameters/idempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhook'
+            example:
+              url: https://hooks.acme.example/northstar
+              events:
+              - customer.created
+              - event.received
+              enabled: true
+      responses:
+        '201':
+          description: Destination created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+              example: *id003
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /webhooks/{webhook_id}:
+    get:
+      tags:
+      - Webhooks
+      operationId: getWebhook
+      summary: Retrieve a webhook destination
+      description: View the status and subscribed event types for one destination.
+      parameters:
+      - $ref: '#/components/parameters/webhookId'
+      responses:
+        '200':
+          description: Destination found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+              example: *id003
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags:
+      - Webhooks
+      operationId: deleteWebhook
+      summary: Delete a webhook destination
+      description: Remove a registered destination. This action cannot be undone.
+      parameters:
+      - $ref: '#/components/parameters/webhookId'
+      responses:
+        '204':
+          description: Destination deleted; no response body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API key
+      description: 'Pass a demo token as `Authorization: Bearer ns_demo_key`. Use real secrets only in your real
+        backend.'
+  parameters:
+    customerId:
+      name: customer_id
+      in: path
+      required: true
+      description: Northstar customer identifier.
+      schema:
+        type: string
+        example: cus_7a2b9c
+    webhookId:
+      name: webhook_id
+      in: path
+      required: true
+      description: Webhook destination identifier.
+      schema:
+        type: string
+        example: whk_24d9fa
+    limit:
+      name: limit
+      in: query
+      required: false
+      description: Maximum records to return per page.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      example: 20
+    cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque pagination cursor from the previous response.
+      schema:
+        type: string
+      example: next_cus_7a2b9c
+    idempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: A unique key for retry-safe POST requests. Reuse the same key only when retrying the same payload.
+      schema:
+        type: string
+        maxLength: 128
+      example: onboard-acme-2026-001
+  schemas:
+    Customer:
+      type: object
+      required:
+      - id
+      - name
+      - email
+      - plan
+      - status
+      - created_at
+      properties:
+        id:
+          type: string
+          example: cus_7a2b9c
+        name:
+          type: string
+          example: Acme Robotics
+        email:
+          type: string
+          format: email
+          example: admin@acme.example
+        plan:
+          type: string
+          enum:
+          - starter
+          - growth
+          - enterprise
+          example: growth
+        status:
+          type: string
+          enum:
+          - active
+          - trialing
+          - paused
+          example: active
+        external_id:
+          type: string
+          nullable: true
+          description: Identifier for this customer in your own system.
+          example: crm_acme_001
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-11-16T16:00:00Z'
+    CreateCustomer:
+      type: object
+      required:
+      - name
+      - email
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+          example: Acme Robotics
+        email:
+          type: string
+          format: email
+          example: admin@acme.example
+        plan:
+          type: string
+          enum:
+          - starter
+          - growth
+          - enterprise
+          default: starter
+          example: growth
+        external_id:
+          type: string
+          maxLength: 128
+          example: crm_acme_001
+    UpdateCustomer:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+          example: Acme Robotics Inc.
+        plan:
+          type: string
+          enum:
+          - starter
+          - growth
+          - enterprise
+          example: enterprise
+        status:
+          type: string
+          enum:
+          - active
+          - trialing
+          - paused
+          example: active
+        external_id:
+          type: string
+          nullable: true
+          example: crm_acme_001
+    Event:
+      type: object
+      required:
+      - id
+      - customer_id
+      - name
+      - properties
+      - occurred_at
+      - received_at
+      properties:
+        id:
+          type: string
+          example: evt_89fa2d
+        customer_id:
+          type: string
+          example: cus_7a2b9c
+        name:
+          type: string
+          example: feature.used
+        properties:
+          type: object
+          additionalProperties: true
+          example:
+            feature: dashboard
+            source: web
+        occurred_at:
+          type: string
+          format: date-time
+          example: '2026-11-16T16:20:00Z'
+        received_at:
+          type: string
+          format: date-time
+          example: '2026-11-16T16:20:01Z'
+    CreateEvent:
+      type: object
+      required:
+      - customer_id
+      - name
+      properties:
+        customer_id:
+          type: string
+          example: cus_7a2b9c
+        name:
+          type: string
+          minLength: 1
+          example: feature.used
+        properties:
+          type: object
+          additionalProperties: true
+          default: {}
+          example:
+            feature: dashboard
+            source: web
+        occurred_at:
+          type: string
+          format: date-time
+          description: Defaults to the server clock when omitted.
+          example: '2026-11-16T16:20:00Z'
+    UsageSummary:
+      type: object
+      required:
+      - customer_id
+      - period_start
+      - period_end
+      - total_events
+      - active_days
+      - top_events
+      properties:
+        customer_id:
+          type: string
+          example: cus_7a2b9c
+        period_start:
+          type: string
+          format: date
+          example: '2026-11-01'
+        period_end:
+          type: string
+          format: date
+          example: '2026-11-30'
+        total_events:
+          type: integer
+          minimum: 0
+          example: 1532
+        active_days:
+          type: integer
+          minimum: 0
+          example: 14
+        top_events:
+          type: array
+          items:
+            type: object
+            required:
+            - name
+            - count
+            properties:
+              name:
+                type: string
+                example: feature.used
+              count:
+                type: integer
+                minimum: 0
+                example: 1210
+    Webhook:
+      type: object
+      required:
+      - id
+      - url
+      - events
+      - enabled
+      - created_at
+      properties:
+        id:
+          type: string
+          example: whk_24d9fa
+        url:
+          type: string
+          format: uri
+          example: https://hooks.acme.example/northstar
+        events:
+          type: array
+          items:
+            type: string
+            enum:
+            - customer.created
+            - customer.updated
+            - event.received
+          example:
+          - customer.created
+          - event.received
+        enabled:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-11-16T16:30:00Z'
+    CreateWebhook:
+      type: object
+      required:
+      - url
+      - events
+      properties:
+        url:
+          type: string
+          format: uri
+          example: https://hooks.acme.example/northstar
+        events:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+            - customer.created
+            - customer.updated
+            - event.received
+          example:
+          - customer.created
+          - event.received
+        enabled:
+          type: boolean
+          default: true
+          example: true
+    PageInfo:
+      type: object
+      required:
+      - has_more
+      - next_cursor
+      properties:
+        has_more:
+          type: boolean
+          example: false
+        next_cursor:
+          type: string
+          nullable: true
+          example: null
+    CustomerList:
+      type: object
+      required:
+      - data
+      - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customer'
+        pagination:
+          $ref: '#/components/schemas/PageInfo'
+    EventList:
+      type: object
+      required:
+      - data
+      - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+        pagination:
+          $ref: '#/components/schemas/PageInfo'
+    WebhookList:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Webhook'
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - code
+          - message
+          - request_id
+          properties:
+            code:
+              type: string
+              example: invalid_request
+            message:
+              type: string
+              example: The request body is missing a required field.
+            request_id:
+              type: string
+              example: req_84ac2d
+  responses:
+    BadRequest:
+      description: The request could not be parsed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: badRequest
+              message: The request could not be parsed.
+              request_id: req_84ac2d
+    Unauthorized:
+      description: A valid bearer API token is required.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: unauthorized
+              message: A valid bearer API token is required.
+              request_id: req_84ac2d
+    NotFound:
+      description: The resource could not be found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: notFound
+              message: The resource could not be found.
+              request_id: req_84ac2d
+    Conflict:
+      description: The request conflicts with an existing resource.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: conflict
+              message: The request conflicts with an existing resource.
+              request_id: req_84ac2d
+    UnprocessableEntity:
+      description: One or more fields are invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: unprocessableEntity
+              message: One or more fields are invalid.
+              request_id: req_84ac2d
+    TooManyRequests:
+      description: Rate limit exceeded. Retry after the stated delay.
+      headers:
+        Retry-After:
+          description: Number of seconds to wait before retrying.
+          schema:
+            type: integer
+            example: 30
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: tooManyRequests
+              message: Rate limit exceeded. Retry after the stated delay.
+              request_id: req_84ac2d
