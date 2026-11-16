@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "palm",
+  "theme": "mint",
   "name": "Mintlify Starter Kit",
   "colors": {
     "primary": "#16A34A",
@@ -130,9 +130,9 @@
     }
   },
   "icons": {
-    "library": "lucide"
+    "library": "fontawesome"
   },
   "background": {
-    "image": "/images/laketahoe.webp"
+    "image": "/images/laketahoe2.jpeg"
   }
 }
