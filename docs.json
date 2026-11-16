@@ -131,8 +131,5 @@
   },
   "icons": {
     "library": "fontawesome"
-  },
-  "background": {
-    "image": "/images/background.png"
   }
 }
